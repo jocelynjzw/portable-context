@@ -4,15 +4,23 @@
 
 ## English
 
-**Use one set of memories you control across AI tools and devices.** Choose where your memories live, check their sources, correct them, and revisit earlier versions. This is a general-purpose memory store for AI clients. It can hold facts and context as well as personal preferences.
+**When you use several AI tools in your day-to-day work, give them the same project background so you can skip the repeat briefings.** Use the tools that fit each task and the devices that are convenient at the time. portable-context is a shared memory layer for the tools you already use.
+
+### Intended use case
+
+In this fictional example, someone uses one AI on their phone to draft a message about an upcoming release and another on their computer to work on the code. Both need the same background, such as what's in scope for the release and why a feature was deferred. The goal is for both tools to read and add to that shared background. **This is a target scenario. It has yet to be tested.**
+
+### Current status
 
 | Status | What's supported |
 | --- | --- |
-| **Released and verified** | v0.1.0 is a local proof of concept. It stores memories in SQLite on your device and connects to clients through a local MCP server over stdio. Cross-session use has been verified with the official Codex CLI. |
-| **Unreleased Notion development build on `main`** | Optional Notion storage is implemented and can be configured to use a shared, dedicated database. Testing so far uses offline mocks. Both the live Notion API and cross-device use still need validation. |
-| **Not implemented** | Mobile access and remote HTTP MCP, including authentication. Cloud AI services that cannot launch a local MCP server cannot connect directly yet. |
+| **Released and verified** | v0.1.0 is a local proof of concept. It stores memories in SQLite on your computer and connects through a local MCP server over stdio. Cross-session use has been verified with the official Codex CLI. Other AI clients have yet to be verified. |
+| **Unreleased Notion development build on `main`** | Optional Notion storage is implemented and has been tested only with offline mocks. The live Notion API and cross-device use have yet to be validated. Cloud storage is a core part of the first version still to be completed. The setup uses a dedicated database in your own Notion account that local MCP servers on multiple computers can share. |
+| **Not implemented** | Mobile access and remote HTTP MCP, including authentication. Cloud AI services that cannot launch a local MCP server cannot connect directly yet. Each participating device must run its own local MCP server and connect over stdio. |
 
-Other AI clients have yet to be verified. SQLite remains available for local, offline use.
+### How sharing works
+
+Keep using your existing AI tools directly. portable-context is a shared memory layer with no required central agent or single entry point. A connected client explicitly calls the tools to save or read project background. It does not act as another agent, automatically record conversations or hand off progress, coordinate tasks across tools, or sync instantly across devices. Models can still give different answers with the same background.
 
 ### Data and privacy
 
@@ -62,9 +70,13 @@ args = ["/absolute/path/to/portable-context/dist/server.js"]
 PORTABLE_CONTEXT_DATA_DIR = "/absolute/path/to/local-memory"
 ```
 
+#### Verified minimum example
+
+After setup, ask the official Codex CLI to save a fictional project fact with `memory_write`. In a new session on the same computer, find it with `memory_search` and use `memory_correct` to update it. In another session, search again to see the corrected fact.
+
 ### Try Notion storage
 
-Build from the source on `main` and have the client on each computer launch its own local MCP server. The command-line tool uses the same environment variables. To try the setup across devices, point each computer at the same dedicated database and use an integration token with access to it.
+This unreleased setup has only been tested with offline mocks. Build from the source on `main` and have the client on each computer launch its own local MCP server. The command-line tool uses the same environment variables. To try the setup across devices, point each computer at the same dedicated database and use an integration token with access to it.
 
 1. Create a dedicated Notion database with a single data source. Set `Name` as the title property and add a text property called `Portable Context v1`. Use this database exclusively for portable-context.
 2. Create an internal integration with permission to read and insert content. Add the integration as a connection to the dedicated database.
@@ -96,13 +108,13 @@ Call `memory_search` first to check the connection. An empty database should ret
 
 A correction creates a new version and ID, increments the version number by one, and keeps the earlier versions. If you get a version conflict (`VERSION_CONFLICT`), check the latest version first. If Notion contains two competing versions, review and resolve them in the dedicated database first.
 
-These commands list, view, search, correct, delete, and export memories. Run the ones you need and replace `ID` and the version numbers with your own values. To delete a memory after correcting it, use the new ID and version number returned by the correction. If you installed the package, run the commands from the installation directory and replace `node dist/cli.js` with `npm exec -- portable-context`.
+These command examples use fictional release data and show how to list, view, search, correct, delete, and export memories. Run the ones you need and replace `ID` and the version numbers with your own values. To delete a memory after correcting it, use the new ID and version number returned by the correction. If you installed the package, run the commands from the installation directory and replace `node dist/cli.js` with `npm exec -- portable-context`.
 
 ```sh
-node dist/cli.js list --scope "Tea recommendations"
+node dist/cli.js list --scope "April release"
 node dist/cli.js show ID
-node dist/cli.js search "oolong tea" --scope "Tea recommendations"
-node dist/cli.js correct ID --version 1 --content "Alex Chen likes oolong tea" --source "Fictional tasting notes" --time 2026-01-16
+node dist/cli.js search "dashboard" --scope "April release"
+node dist/cli.js correct ID --version 1 --content "The dashboard is deferred to the next release pending accessibility review" --source "Fictional release planning notes" --time 2026-04-16
 node dist/cli.js delete ID --version 2
 node dist/cli.js export
 ```
@@ -115,15 +127,23 @@ Export writes a JSON file to the local data directory with the memories you can 
 
 ## 中文
 
-**跨 AI 工具、跨设备，共用你自己的一份记忆。** 你决定记忆存在哪里，也可以查来源、纠正内容、追查旧版本。这是一套面向各类 AI 客户端的通用记忆工具，可以保存事实、背景和个人偏好。
+**日常工作用到多个 AI 时，让它们共用同一份项目背景，省去反复交代。** 哪个工具擅长哪件事，就用哪个，手边哪台设备方便，就用哪台。portable-context 给你已经在用的 AI 提供一层共享记忆。
+
+### 目标使用场景
+
+举个虚构的例子。一个人在手机上用一个 AI 起草发布通知，回到电脑前用另一个 AI 写代码。两边都需要知道这次发布包含什么、某项功能为什么延期。目标是让两边都能读取和补充同一份项目背景。**这是目标场景，尚未实测。**
+
+### 当前状态
 
 | 状态 | 支持范围 |
 | --- | --- |
-| **已发布并验证** | 本地 v0.1.0 技术验证。记忆存在本机 SQLite，客户端通过本机 stdio MCP 接入。已验证官方 Codex CLI 跨会话使用。 |
-| **main 上的 Notion 开发版 · 未发布** | 已实现可选的 Notion 存储，可配置为使用同一个专用库。目前只做过离线模拟测试，尚未验收真实 Notion API 或跨设备使用。 |
-| **尚未实现** | 手机接入和远程 HTTP MCP（含认证）。无法启动本机 MCP 的云端 AI 也暂时无法直接接入。 |
+| **已发布并验证** | 本地 v0.1.0 技术验证。记忆存在本机 SQLite，客户端通过本机 stdio MCP 接入。已验证官方 Codex CLI 跨会话使用。其他 AI 客户端尚未验证。 |
+| **main 上的 Notion 开发版 · 未发布** | 已实现可选的 Notion 存储，目前只做过离线模拟测试，尚未验收真实 Notion API 或跨设备使用。云端存储是首版待完成的核心范围。方案是在你自己的 Notion 中建一个专用库，供多台电脑上的本机 MCP 共用。 |
+| **尚未实现** | 手机接入和远程 HTTP MCP（含认证）。无法启动本机 MCP 的云端 AI 暂时也无法直接接入。每台接入设备都需要各自运行本机 MCP 服务，通过 stdio 连接。 |
 
-其他 AI 客户端尚未验证。SQLite 继续作为本机离线选项。
+### 怎么共用记忆
+
+可以继续直接使用现有的 AI 工具。portable-context 是独立的共享记忆层，无需中心管家或统一入口。接入的 AI 要主动调用工具，才会保存或读取项目背景。它不是另一个 Agent，不会自动记录对话、交接进度、统一调度任务或跨设备即时同步。即使共用同一份背景，不同模型也可能给出不同答案。
 
 ### 数据与隐私
 
@@ -173,9 +193,13 @@ args = ["/absolute/path/to/portable-context/dist/server.js"]
 PORTABLE_CONTEXT_DATA_DIR = "/absolute/path/to/local-memory"
 ```
 
+#### 已验证的最小例子
+
+接入后，请官方 Codex CLI 用 `memory_write` 保存一条虚构的项目背景。在同一台电脑上开一个新会话，用 `memory_search` 找到它，再用 `memory_correct` 更新。另开一个会话搜索，就能看到纠正后的内容。
+
 ### 试用 Notion 存储
 
-从 main 的源码构建，再让每台电脑的客户端各自启动本机 MCP。命令行工具也使用同一组变量。跨设备试用时，各电脑配置同一个专用库，并使用对该库有权限的集成令牌。
+这套未发布的方案只做过离线模拟测试。从 `main` 的源码构建，再让每台电脑的客户端各自启动本机 MCP。命令行工具也使用同一组变量。跨设备试用时，各电脑配置同一个专用库，并使用对该库有权限的集成令牌。
 
 1. 在自己的 Notion 新建专用数据库，只保留一个数据源。设置 `Name` 为标题列，另加一个文本列 `Portable Context v1`。这张表只给 portable-context 使用。
 2. 新建内部集成，打开读取和新增内容权限。在专用数据库里添加该连接。
@@ -207,13 +231,13 @@ env_vars = ["PORTABLE_CONTEXT_BACKEND", "PORTABLE_CONTEXT_NOTION_TOKEN", "PORTAB
 
 纠正会生成新版本和新 ID，版本号加一，旧版本保留。遇到版本冲突（`VERSION_CONFLICT`）时，先查看最新版本。Notion 若出现两个并行版本，需要先到专用库核对并处理分支。
 
-下面用本机命令列出、查看、搜索、纠正、删除或导出记忆。按需执行，把 `ID` 和版本号换成实际值。纠正后如要删除，请用纠正返回的新 ID 和版本号。使用安装包时，在安装目录把 `node dist/cli.js` 换成 `npm exec -- portable-context`。
+下面用虚构的发布数据举例，展示如何用本机命令列出、查看、搜索、纠正、删除或导出记忆。按需执行，把 `ID` 和版本号换成实际值。纠正后如要删除，请用纠正返回的新 ID 和版本号。使用安装包时，在安装目录把 `node dist/cli.js` 换成 `npm exec -- portable-context`。
 
 ```sh
-node dist/cli.js list --scope "Tea recommendations"
+node dist/cli.js list --scope "April release"
 node dist/cli.js show ID
-node dist/cli.js search "oolong tea" --scope "Tea recommendations"
-node dist/cli.js correct ID --version 1 --content "Alex Chen likes oolong tea" --source "Fictional tasting notes" --time 2026-01-16
+node dist/cli.js search "dashboard" --scope "April release"
+node dist/cli.js correct ID --version 1 --content "The dashboard is deferred to the next release pending accessibility review" --source "Fictional release planning notes" --time 2026-04-16
 node dist/cli.js delete ID --version 2
 node dist/cli.js export
 ```
