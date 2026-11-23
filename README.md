@@ -4,23 +4,24 @@
 
 ## English
 
-**When you use several AI tools in your day-to-day work, give them the same project background so you can skip the repeat briefings.** Use the tools that fit each task and the devices that are convenient at the time. portable-context is a shared memory layer for the tools you already use.
+**portable-context aims to let the AI tools you use every day share long-term personal memory and the context of your current task, so you can spend less time repeating yourself or copying notes between tools.** Memory keeps information that stays useful across tasks. Task context supports the work at hand. The two complement each other.
 
-### Intended use case
+### Intended workflow (fictional and untested)
 
-In this fictional example, someone uses one AI on their phone to draft a message about an upcoming release and another on their computer to work on the code. Both need the same background, such as what's in scope for the release and why a feature was deferred. The goal is for both tools to read and add to that shared background. **This is a target scenario. It has yet to be tested.**
+For a community map release, you use one AI to draft an announcement and another to write code. Both need long-term context, such as the project's audience and your preference for plain language. For this release, you choose to share the goal, the draft map and its source, the decision to postpone filters, the current progress, and the next step. Each tool can use that shared context when asked.
 
 ### Current status
 
 | Status | What's supported |
 | --- | --- |
-| **Released and verified** | v0.1.0 is a local proof of concept. It stores memories in SQLite on your computer and connects through a local MCP server over stdio. Cross-session use has been verified with the official Codex CLI. Other AI clients have yet to be verified. |
-| **Unreleased Notion development build on `main`** | Optional Notion storage is implemented and has been tested only with offline mocks. The live Notion API and cross-device use have yet to be validated. Cloud storage is a core part of the first version still to be completed. The setup uses a dedicated database in your own Notion account that local MCP servers on multiple computers can share. |
-| **Not implemented** | Mobile access and remote HTTP MCP, including authentication. Cloud AI services that cannot launch a local MCP server cannot connect directly yet. Each participating device must run its own local MCP server and connect over stdio. |
+| **Stable release v0.1.0 · verified locally** | Memories are stored in SQLite and accessed through a local MCP server over stdio. Cross-session use has been verified only with the official Codex CLI. Other clients have yet to be verified. |
+| **Notion development build on `main` · unreleased** | Optional Notion storage is implemented and has only been tested with offline mocks. Using a dedicated database in your own Notion account remains a core part of the first cloud version. Live Notion API and cross-device validation are pending. |
+| **Shared task context · core requirement, incomplete** | You can manually save task-related text as general memory. Task grouping, a current task snapshot, material references, and dedicated retrieval by task are still missing. See the [product spec](docs/product-spec.md). |
+| **Not implemented** | Remote HTTP MCP (including authentication) and mobile access. Each participating device must run its own local stdio MCP server. Cloud AI services that cannot launch a local MCP server cannot connect directly. |
 
-### How sharing works
+### How tools use shared information
 
-Keep using your existing AI tools directly. portable-context is a shared memory layer with no required central agent or single entry point. A connected client explicitly calls the tools to save or read project background. It does not act as another agent, automatically record conversations or hand off progress, coordinate tasks across tools, or sync instantly across devices. Models can still give different answers with the same background.
+Keep using your existing AI tools through their own interfaces. portable-context is a place to share information. It does not act as another agent, require a single entry point, listen to all chats, assign work, or hand off progress automatically. A user or tool must explicitly request context for a task. Different models may still give different answers.
 
 ### Data and privacy
 
@@ -72,7 +73,9 @@ PORTABLE_CONTEXT_DATA_DIR = "/absolute/path/to/local-memory"
 
 #### Verified minimum example
 
-After setup, ask the official Codex CLI to save a fictional project fact with `memory_write`. In a new session on the same computer, find it with `memory_search` and use `memory_correct` to update it. In another session, search again to see the corrected fact.
+This example covers the verified Codex cross-session write, read, and correction on one computer. The full multi-AI task workflow is still pending.
+
+Ask Codex to save a fictional fact with `memory_write`: “The community map is updated monthly.” Use “Community map” as the subject, “Fictional project brief” as the source, `2026-04-15` as the date, and “Project background” as the scope. In a new session, find it with `memory_search` and read it with `memory_read`. Use `memory_correct` to change the schedule to quarterly, citing “Fictional planning notes” dated `2026-04-16`. Open another session and search again to see the corrected fact.
 
 ### Try Notion storage
 
@@ -108,14 +111,14 @@ Call `memory_search` first to check the connection. An empty database should ret
 
 A correction creates a new version and ID, increments the version number by one, and keeps the earlier versions. If you get a version conflict (`VERSION_CONFLICT`), check the latest version first. If Notion contains two competing versions, review and resolve them in the dedicated database first.
 
-These command examples use fictional release data and show how to list, view, search, correct, delete, and export memories. Run the ones you need and replace `ID` and the version numbers with your own values. To delete a memory after correcting it, use the new ID and version number returned by the correction. If you installed the package, run the commands from the installation directory and replace `node dist/cli.js` with `npm exec -- portable-context`.
+These command examples use fictional release data and show how to list, view, search, correct, delete, and export memories. Run the ones you need and replace `<MEMORY_ID>` and the version numbers with your own values. To delete a memory after correcting it, use the new ID and version number returned by the correction. If you installed the package, run the commands from the installation directory and replace `node dist/cli.js` with `npm exec -- portable-context`.
 
 ```sh
 node dist/cli.js list --scope "April release"
-node dist/cli.js show ID
+node dist/cli.js show '<MEMORY_ID>'
 node dist/cli.js search "dashboard" --scope "April release"
-node dist/cli.js correct ID --version 1 --content "The dashboard is deferred to the next release pending accessibility review" --source "Fictional release planning notes" --time 2026-04-16
-node dist/cli.js delete ID --version 2
+node dist/cli.js correct '<MEMORY_ID>' --version 1 --content "The dashboard is deferred to the next release pending accessibility review" --source "Fictional release planning notes" --time 2026-04-16
+node dist/cli.js delete '<MEMORY_ID>' --version 2
 node dist/cli.js export
 ```
 
@@ -123,27 +126,28 @@ Export writes a JSON file to the local data directory with the memories you can 
 
 ### Version and license
 
-**v0.1.0** is the released local proof of concept. [Changelog](CHANGELOG.md) · [v0.1.0 release](https://github.com/jocelynjzw/portable-context/releases/tag/v0.1.0) · [MIT license](LICENSE)
+**v0.1.0** is the stable local release. [Changelog](CHANGELOG.md) · [v0.1.0 release](https://github.com/jocelynjzw/portable-context/releases/tag/v0.1.0) · [MIT license](LICENSE)
 
 ## 中文
 
-**日常工作用到多个 AI 时，让它们共用同一份项目背景，省去反复交代。** 哪个工具擅长哪件事，就用哪个，手边哪台设备方便，就用哪台。portable-context 给你已经在用的 AI 提供一层共享记忆。
+**portable-context 的目标是让你日常使用的多个 AI 共用长期个人记忆和当前任务上下文，少反复交代，也少来回复制粘贴。** 记忆（memory）保存跨任务有用的长期信息，任务上下文（task context）支持眼前的工作，两者互补。
 
-### 目标使用场景
+### 目标使用场景（虚构，尚未实测）
 
-举个虚构的例子。一个人在手机上用一个 AI 起草发布通知，回到电脑前用另一个 AI 写代码。两边都需要知道这次发布包含什么、某项功能为什么延期。目标是让两边都能读取和补充同一份项目背景。**这是目标场景，尚未实测。**
+准备发布一张社区地图时，你用一个 AI 写发布通知，用另一个 AI 写代码。两边都需要长期背景，比如项目面向谁、你偏好用简明的表达。针对这次发布，你选出要共享的目标、地图草稿及出处、推迟筛选功能的决定、当前进展和下一步。两个工具都可以在你需要时调用这份信息。
 
 ### 当前状态
 
 | 状态 | 支持范围 |
 | --- | --- |
-| **已发布并验证** | 本地 v0.1.0 技术验证。记忆存在本机 SQLite，客户端通过本机 stdio MCP 接入。已验证官方 Codex CLI 跨会话使用。其他 AI 客户端尚未验证。 |
-| **main 上的 Notion 开发版 · 未发布** | 已实现可选的 Notion 存储，目前只做过离线模拟测试，尚未验收真实 Notion API 或跨设备使用。云端存储是首版待完成的核心范围。方案是在你自己的 Notion 中建一个专用库，供多台电脑上的本机 MCP 共用。 |
-| **尚未实现** | 手机接入和远程 HTTP MCP（含认证）。无法启动本机 MCP 的云端 AI 暂时也无法直接接入。每台接入设备都需要各自运行本机 MCP 服务，通过 stdio 连接。 |
+| **稳定版 v0.1.0 · 已在本机验证** | 记忆存在本机 SQLite，客户端通过本机 stdio MCP 接入。仅官方 Codex CLI 通过跨会话验收，其他客户端尚未验证。 |
+| **main 上的 Notion 开发版 · 未发布** | 已实现可选的 Notion 存储，只做过离线模拟测试。用户自己的 Notion 专用库仍是首版云端待完成的核心范围，真实 Notion API 和跨设备使用尚未验收。 |
+| **共享任务上下文 · 核心需求，尚未补齐** | 可以手工把任务相关文字存入通用记忆。任务聚合、当前任务快照、材料引用、按任务专门取回上下文的能力仍缺失。详见[产品规格](docs/product-spec.md)。 |
+| **尚未实现** | 远程 HTTP MCP（含认证）和手机接入。每台接入设备都需要各自运行本机 stdio MCP 服务。无法启动本机 MCP 的云端 AI 暂时无法直接接入。 |
 
-### 怎么共用记忆
+### 工具怎么使用共享信息
 
-可以继续直接使用现有的 AI 工具。portable-context 是独立的共享记忆层，无需中心管家或统一入口。接入的 AI 要主动调用工具，才会保存或读取项目背景。它不是另一个 Agent，不会自动记录对话、交接进度、统一调度任务或跨设备即时同步。即使共用同一份背景，不同模型也可能给出不同答案。
+可以继续在各自的界面使用已有的 AI。portable-context 提供共用信息的地方。它不是另一个 Agent，无需统一入口，也不会自动监听全部聊天、派工或交接进度。用户或工具需要主动调用，客户端才会取得当前任务的上下文。不同模型仍可能给出不同答案。
 
 ### 数据与隐私
 
@@ -195,7 +199,9 @@ PORTABLE_CONTEXT_DATA_DIR = "/absolute/path/to/local-memory"
 
 #### 已验证的最小例子
 
-接入后，请官方 Codex CLI 用 `memory_write` 保存一条虚构的项目背景。在同一台电脑上开一个新会话，用 `memory_search` 找到它，再用 `memory_correct` 更新。另开一个会话搜索，就能看到纠正后的内容。
+这个例子只覆盖已验证的本机 Codex 跨会话写入、读取和纠正。完整的多 AI 任务工作流仍待实现。
+
+请 Codex 用 `memory_write` 保存一条虚构背景「社区地图每月更新」，主体填「社区地图」，来源填「虚构项目简报」，日期用 `2026-04-15`，范围填「项目背景」。新开会话，用 `memory_search` 找到它，再用 `memory_read` 读取。用 `memory_correct` 改为每季度更新，来源填 `2026-04-16` 的「虚构规划笔记」。再开一个会话搜索，确认看到纠正后的内容。
 
 ### 试用 Notion 存储
 
@@ -231,14 +237,14 @@ env_vars = ["PORTABLE_CONTEXT_BACKEND", "PORTABLE_CONTEXT_NOTION_TOKEN", "PORTAB
 
 纠正会生成新版本和新 ID，版本号加一，旧版本保留。遇到版本冲突（`VERSION_CONFLICT`）时，先查看最新版本。Notion 若出现两个并行版本，需要先到专用库核对并处理分支。
 
-下面用虚构的发布数据举例，展示如何用本机命令列出、查看、搜索、纠正、删除或导出记忆。按需执行，把 `ID` 和版本号换成实际值。纠正后如要删除，请用纠正返回的新 ID 和版本号。使用安装包时，在安装目录把 `node dist/cli.js` 换成 `npm exec -- portable-context`。
+下面用虚构的发布数据举例，展示如何用本机命令列出、查看、搜索、纠正、删除或导出记忆。按需执行，把 `<MEMORY_ID>` 和版本号换成实际值。纠正后如要删除，请用纠正返回的新 ID 和版本号。使用安装包时，在安装目录把 `node dist/cli.js` 换成 `npm exec -- portable-context`。
 
 ```sh
 node dist/cli.js list --scope "April release"
-node dist/cli.js show ID
+node dist/cli.js show '<MEMORY_ID>'
 node dist/cli.js search "dashboard" --scope "April release"
-node dist/cli.js correct ID --version 1 --content "The dashboard is deferred to the next release pending accessibility review" --source "Fictional release planning notes" --time 2026-04-16
-node dist/cli.js delete ID --version 2
+node dist/cli.js correct '<MEMORY_ID>' --version 1 --content "The dashboard is deferred to the next release pending accessibility review" --source "Fictional release planning notes" --time 2026-04-16
+node dist/cli.js delete '<MEMORY_ID>' --version 2
 node dist/cli.js export
 ```
 
@@ -246,4 +252,4 @@ node dist/cli.js export
 
 ### 版本与许可
 
-已发布版本为 **v0.1.0**（本地技术验证）。[变更记录](CHANGELOG.md) · [v0.1.0 发布页](https://github.com/jocelynjzw/portable-context/releases/tag/v0.1.0) · [MIT 许可证](LICENSE)
+当前稳定版为 **v0.1.0**，在本机运行。[变更记录](CHANGELOG.md) · [v0.1.0 发布页](https://github.com/jocelynjzw/portable-context/releases/tag/v0.1.0) · [MIT 许可证](LICENSE)

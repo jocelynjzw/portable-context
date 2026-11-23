@@ -17,7 +17,8 @@
     "dist/store.js",
     "dist/backend.js",
     "dist/notion.js",
-    "docs/notion-backend.md"
+    "docs/notion-backend.md",
+    "docs/product-spec.md"
   ],
   "scripts": {
     "build": "tsc",

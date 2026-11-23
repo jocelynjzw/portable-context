@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 
 const allowed = new Set([
-  '.gitignore', '.env.example', 'LICENSE', 'README.md', 'CHANGELOG.md', 'docs/notion-backend.md', 'package.json', 'package-lock.json',
+  '.gitignore', '.env.example', 'LICENSE', 'README.md', 'CHANGELOG.md', 'docs/notion-backend.md', 'docs/product-spec.md', 'package.json', 'package-lock.json',
   'tsconfig.json', 'src/store.ts', 'src/cli.ts', 'src/server.ts', 'src/backend.ts', 'src/notion.ts',
   'test/client.mjs', 'test/integration.test.mjs', 'test/notion.test.mjs', 'scripts/check-safety.mjs',
 ]);
