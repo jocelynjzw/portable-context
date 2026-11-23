@@ -2,21 +2,24 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { Store, StoreError, dataDirectory, fields, readInput, searchInput, correctInput, editInput } from './store.js';
+import { StoreError, fields, readInput, searchInput, correctInput, editInput } from './store.js';
 
-function result(operation: () => object): CallToolResult {
+import { openBackend } from './backend.js';
+import { NotionStore } from './notion.js';
+
+async function result(operation: () => object | Promise<object>): Promise<CallToolResult> {
   try {
-    return { content: [{ type: 'text', text: JSON.stringify(operation()) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(await operation()) }] };
   } catch (error) {
     return { isError: true, content: [{ type: 'text', text: error instanceof StoreError ? error.message : 'Storage operation failed.' }] };
   }
 }
 
-function openStore(): Store {
+function openStore() {
   try {
-    return new Store(dataDirectory());
+    return openBackend();
   } catch (error) {
-    console.error(error instanceof StoreError ? error.message : 'Could not open local storage.');
+    console.error(error instanceof StoreError ? error.message : 'Could not open storage.');
     process.exit(1);
   }
 }
@@ -34,7 +37,7 @@ server.registerTool('memory_write', {
 server.registerTool('memory_search', {
   description: 'Search active memories. Set scope to the intended use when known.',
   inputSchema: searchInput,
-}, input => result(() => ({ memories: store.search(input) })));
+}, input => result(async () => ({ memories: await store.search(input) })));
 
 server.registerTool('memory_read', {
   description: 'Read a specific revision by ID, including its source and replacement links.',
@@ -47,7 +50,9 @@ server.registerTool('memory_correct', {
 }, input => result(() => store.correct(input)));
 
 server.registerTool('memory_delete', {
-  description: 'Delete an active memory and all its revisions by ID and expected version.',
+  description: store instanceof NotionStore
+    ? 'Hide an active memory and its history by ID and expected version. The original pages remain in Notion.'
+    : 'Delete an active memory and all its revisions by ID and expected version.',
   inputSchema: editInput,
 }, input => result(() => store.delete(input)));
 

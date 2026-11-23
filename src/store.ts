@@ -67,8 +67,8 @@ export const searchInput = z.strictObject({
   limit: z.number().int().min(1).max(1000).default(50),
 }, unknownFields);
 
-type Fields = z.infer<typeof fields>;
-type Memory = Fields & {
+export type Fields = z.infer<typeof fields>;
+export type Memory = Fields & {
   id: string;
   rootId: string;
   replacesId: string | null;
@@ -174,16 +174,11 @@ export class Store {
   }
 
   search(input: unknown): Memory[] {
-    const { query, subject, scope, limit } = searchInput.parse(input);
-    const normalize = (value: string) => value.normalize('NFKC').toLowerCase();
-    const terms = query ? normalize(query).split(/\s+/) : [];
+    const { limit, matches } = memorySearch(input);
     const results: Memory[] = [];
     for (const row of this.db.prepare("SELECT * FROM memories WHERE status = 'active' ORDER BY recordedAt DESC, id").iterate()) {
       const memory = row as Memory;
-      if (subject && normalize(memory.subject) !== normalize(subject)) continue;
-      if (scope && normalize(memory.scope) !== normalize(scope)) continue;
-      const searchable = [memory.subject, memory.content, memory.source, memory.scope].map(normalize);
-      if (!terms.every(term => searchable.some(value => value.includes(term)))) continue;
+      if (!matches(memory)) continue;
       results.push(memory);
       if (results.length === limit) break;
     }
@@ -235,22 +230,39 @@ export class Store {
   }
 
   export(): { path: string } {
-    const directory = checkedDirectory(this.directory);
-    const path = join(directory, `portable-context-export-${randomUUID()}.json`);
-    const temporary = path + '.tmp';
-    const rows = this.db.prepare('SELECT * FROM memories ORDER BY rootId, version').all();
-    const fd = openSync(temporary, 'wx', 0o600);
-    try {
-      try {
-        writeFileSync(fd, JSON.stringify(rows, null, 2) + '\n');
-      } finally {
-        closeSync(fd);
-      }
-      renameSync(temporary, path);
-    } catch (error) {
-      rmSync(temporary, { force: true });
-      throw error;
-    }
-    return { path };
+    return exportMemories(this.directory, this.db.prepare('SELECT * FROM memories ORDER BY rootId, version').all());
   }
+}
+
+export function memorySearch(input: unknown) {
+  const { query, subject, scope, limit } = searchInput.parse(input);
+  const normalize = (value: string) => value.normalize('NFKC').toLowerCase();
+  const terms = query ? normalize(query).split(/\s+/) : [];
+  const matches = (memory: Memory) => {
+    if (subject && normalize(memory.subject) !== normalize(subject)) return false;
+    if (scope && normalize(memory.scope) !== normalize(scope)) return false;
+    const searchable = [memory.subject, memory.content, memory.source, memory.scope].map(normalize);
+    return terms.every(term => searchable.some(value => value.includes(term)));
+  };
+  return { limit, matches };
+}
+
+export function exportMemories(target: string, rows: readonly object[]): { path: string } {
+  const directory = checkedDirectory(target);
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const path = join(directory, `portable-context-export-${randomUUID()}.json`);
+  const temporary = path + '.tmp';
+  const fd = openSync(temporary, 'wx', 0o600);
+  try {
+    try {
+      writeFileSync(fd, JSON.stringify(rows, null, 2) + '\n');
+    } finally {
+      closeSync(fd);
+    }
+    renameSync(temporary, path);
+  } catch (error) {
+    rmSync(temporary, { force: true });
+    throw error;
+  }
+  return { path };
 }

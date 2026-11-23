@@ -1,7 +1,7 @@
 {
   "name": "portable-context",
   "version": "0.1.0",
-  "description": "Local personal memory shared by MCP clients",
+  "description": "User-owned personal memory shared by MCP clients",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -14,11 +14,14 @@
   "files": [
     "dist/cli.js",
     "dist/server.js",
-    "dist/store.js"
+    "dist/store.js",
+    "dist/backend.js",
+    "dist/notion.js",
+    "docs/notion-backend.md"
   ],
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node --test test/integration.test.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
     "prepack": "npm run build",
     "check:safety": "node scripts/check-safety.mjs"
   },

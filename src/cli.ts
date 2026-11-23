@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
-import { Store, StoreError, dataDirectory } from './store.js';
+import { StoreError } from './store.js';
+import { openBackend } from './backend.js';
 
 const help = `用法
   portable-context list [--subject 主体] [--scope 范围] [--limit 数量]
@@ -9,7 +10,8 @@ const help = `用法
   portable-context correct ID --version 版本 --content "新内容" --source "来源" --time YYYY-MM-DD
   portable-context delete ID --version 版本
   portable-context export
-输出为 JSON。导出返回文件位置，文件包含历史版本，请存放在仓库外。`;
+输出为 JSON。导出返回文件位置，文件包含历史版本，请存放在仓库外。
+使用 Notion 时，删除会隐藏整条记忆，原始页面仍留在 Notion。`;
 
 function number(value: unknown, flag: string): number | undefined {
   if (value === undefined) return undefined;
@@ -17,7 +19,7 @@ function number(value: unknown, flag: string): number | undefined {
   return Number(value);
 }
 
-function main([command, ...args]: string[]) {
+async function main([command, ...args]: string[]) {
   if (!command || command === '--help' || command === '-h') {
     console.log(help);
     return;
@@ -37,7 +39,7 @@ function main([command, ...args]: string[]) {
   const count = command === 'list' || command === 'export' ? 0 : 1;
   if (positionals.length !== count) throw new StoreError('参数数量不对，请用 --help 查看用法。');
 
-  const store = new Store(dataDirectory());
+  const store = openBackend();
   try {
     const [value] = positionals;
     const { version, content, source, time, subject, scope, limit } = values;
@@ -53,14 +55,14 @@ function main([command, ...args]: string[]) {
       case 'delete': output = store.delete(edit); break;
       case 'export': output = store.export(); break;
     }
-    console.log(JSON.stringify(output, null, 2));
+    console.log(JSON.stringify(await output, null, 2));
   } finally {
     store.close();
   }
 }
 
 try {
-  main(process.argv.slice(2));
+  await main(process.argv.slice(2));
 } catch (error) {
   console.error(error instanceof StoreError ? error.message : '操作失败，请检查参数或数据目录。');
   process.exitCode = 1;
