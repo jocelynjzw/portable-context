@@ -29,7 +29,7 @@ args = ["/absolute/path/to/portable-context/dist/server.js"]
 PORTABLE_CONTEXT_DATA_DIR = "/absolute/path/to/local-memory"
 ```
 
-重启 Codex 后，可以明确要求它调用 `memory_search`。已用两个独立的官方 SDK 客户端验证，Codex、Claude Desktop、Cursor 等实际应用接入未验证。
+重启 Codex 后，可以明确要求它调用 `memory_search`。已用官方 Codex CLI 验证通过 MCP 写入、读取和纠正记忆，以及在新会话中再次搜索记忆。
 
 ## 数据存在哪里
 
