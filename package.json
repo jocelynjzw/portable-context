@@ -1,0 +1,33 @@
+{
+  "name": "portable-context",
+  "version": "0.1.0",
+  "description": "Local personal memory shared by MCP clients",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
+  },
+  "bin": {
+    "portable-context": "./dist/cli.js",
+    "portable-context-mcp": "./dist/server.js"
+  },
+  "files": [
+    "dist/cli.js",
+    "dist/server.js",
+    "dist/store.js"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/integration.test.mjs",
+    "prepack": "npm run build",
+    "check:safety": "node scripts/check-safety.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9"
+  }
+}
